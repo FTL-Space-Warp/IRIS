@@ -2,13 +2,17 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
+import math
+
 
 pg.init()
-clock = pg.time.Clock()
-
 size = width, height = 600, 500
 screen = pg.display.set_mode(size)
+clock = pg.time.Clock()
+
 done = False
+entities = []
+mouse_buttons = ()
 
 
 class Entity():
@@ -28,23 +32,36 @@ class Ant(Entity):
         Entity.__init__()
 
 
-def event_loop():
+def event_handle():
     global done
+
     for event in pg.event.get():
         if event.type == pg.QUIT:
             done = True
 
+        if event.type == pg.MOUSEBUTTONDOWN:
+            mouse_buttons = pg.mouse.get_pressed()
 
-def main_loop():
-    asd = Entity((345, 290), (34, 42), (88, 200, 255))
-    asd.draw(screen)
+            if mouse_buttons[0] == True:
+                    entities.append(Entity(event.pos, (10,10), (100, 100, 100)))
 
 
-while not done:
-    event_loop()
-    main_loop()
+
+def render():
+    pg.display.set_caption(f"IRIS - {math.ceil(clock.get_fps())} FPS - {len(entities)} Entities")
+    screen.fill((255, 255, 255))
+    for entity in entities:
+        entity.draw(screen)
     pg.display.flip()
-    clock.tick(60)
 
 
+def main():
+    while not done:
+        event_handle()
+        render()
+        clock.tick(60)
+
+
+
+main()
 
