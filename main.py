@@ -4,6 +4,8 @@
 import pygame as pg
 
 pg.init()
+clock = pg.time.Clock()
+
 size = width, height = 600, 500
 screen = pg.display.set_mode(size)
 done = False
@@ -42,5 +44,7 @@ while not done:
     event_loop()
     main_loop()
     pg.display.flip()
+    clock.tick(60)
+
 
 
