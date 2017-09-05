@@ -3,6 +3,7 @@
 
 import pygame as pg
 
+pg.init()
 size = width, height = 600, 500
 screen = pg.display.set_mode(size)
 done = False
@@ -33,7 +34,7 @@ def event_loop():
 
 
 def main_loop():
-    asd = Entity((345, 290), (34, 42), (88,200,255))
+    asd = Entity((345, 290), (34, 42), (88, 200, 255))
     asd.draw(screen)
 
 
