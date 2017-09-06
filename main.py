@@ -3,7 +3,7 @@
 
 import pygame as pg
 import math
-
+import random
 
 pg.init()
 size = width, height = 600, 500
@@ -16,20 +16,44 @@ mouse_buttons = ()
 
 
 class Entity():
-    def __init__(self, pos, size, color):
+    def __init__(self, pos, size, color, visible=False):
         self.pos = pos
         self.size = size
         self.color = color
         self.rect = pg.Rect((0, 0), size)
         self.rect.center = pos
+        self.visible = visible
 
     def draw(self, surface):
-        pg.draw.rect(surface, self.color, self.rect)
+        if self.visible:
+            pg.draw.rect(surface, self.color, self.rect)
+
+    def update(self):
+        pass
 
 
 class Ant(Entity):
-    def __init__():
-        Entity.__init__()
+    def __init__(self, pos, size = (5,5), direction = 0, speed = 5):
+        Entity.__init__(self, pos, size, (0,0,0), True)
+        self.direction = direction
+        self.speed = speed
+        self.walk = "convoluted"
+
+    def update(self):
+        if self.direction == 0: # up
+            self.rect.y -= self.speed
+        if self.direction == 1: # right
+            self.rect.x += self.speed
+        if self.direction == 2: # down
+            self.rect.y += self.speed
+        if self.direction == 3: # left
+            self.rect.x -= self.speed
+
+        self.direction += random.randint(-1,1)
+        if self.direction >= 5:
+            self.direction = 0
+        if self.direction <= -1:
+            self.direction = 4
 
 
 def event_handle():
@@ -43,7 +67,7 @@ def event_handle():
             mouse_buttons = pg.mouse.get_pressed()
 
             if mouse_buttons[0] == True:
-                    entities.append(Entity(event.pos, (10,10), (100, 100, 100)))
+                    entities.append(Ant(list(event.pos)))
 
 
 
@@ -59,6 +83,8 @@ def main():
     while not done:
         event_handle()
         render()
+        for entity in entities:
+            entity.update()
         clock.tick(60)
 
 
