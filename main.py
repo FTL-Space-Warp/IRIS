@@ -1,16 +1,14 @@
 #!/usr/bin/python3.6
 # -*- coding: utf-8 -*-
 
-import sys
 import pygame as pg
 import irismath as imath
 import math
 from numpy import random
-import time
 
 
 class Entity():
-    def __init__(self, pos, size = (1,1), color = (0,0,0), visible=False, solid=False):
+    def __init__(self, pos, size=(1, 1), color=(0, 0, 0), visible=False, solid=False):
         self.pos = pos
         self.size = size
         self.color = color
@@ -31,8 +29,6 @@ class Entity():
         if self.rect.collidelist([e.rect for e in entities if e is not self and e.solid]) != -1:
             return True
         return False
-
-
 
 
 class Spawn(Entity):
@@ -64,8 +60,6 @@ class Ant(Entity):
             self.angle = random.randint(0, 361)
 
     def update(self):
-#        if not self.rect.colliderect(screen_rect):
-#            sys.exit()
         super().update()
         cspeed = imath.speed_on_coord((self.speed, self.angle))
         self.check_collisions(cspeed)
@@ -80,7 +74,7 @@ class Ant(Entity):
 #                self.rect.x -= math.copysign(i, cspeed[0])
 #                self.rect.y -= math.copysign(i, cspeed[1])
 
-        self.angle  += random.choice((-10, -5, 0, 5, 10), 1, p=(0.125, 0.25, 0.25, 0.25, 0.125))
+        self.angle += random.choice((-10, -5, 0, 5, 10), 1, p=(0.125, 0.25, 0.25, 0.25, 0.125))
 
 
 def event_handle():
@@ -95,7 +89,6 @@ def event_handle():
 #
 #            if mouse_buttons[0] == True:
 #                entities.append(Spawn(list(event.pos), "ant", ["random.randint(0,361)"]))
-
 
 
 def render():
@@ -114,13 +107,14 @@ def main():
             entity.update()
         clock.tick(60)
 
+
 pg.init()
 
 size = width, height = 600, 500
 screen = pg.display.set_mode(size)
 screen_rect = screen.get_rect()
 clock = pg.time.Clock()
-screen_pos = (0,0)
+screen_pos = (0, 0)
 done = False
 entities = [Spawn([width/2, height/2], "ant", ["random.randint(0,361)"])]
 entities.append(Entity((width/2, 0), (width, 5), (0, 0, 0), True, True))  # top wall
