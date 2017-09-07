@@ -25,9 +25,10 @@ class Entity():
     def update(self):
         self.time += 1
 
-    def colliding(self):
-        if self.rect.collidelist([e.rect for e in entities if e is not self and e.solid]) != -1:
-            return True
+    def colliding(self, solid_only):
+        touching = self.rect.collidelistall([e.rect for e in entities  if e is not self and (solid_only == False or e.solid == True)])
+        if touching != -1:
+            return touching # returns entity's class name
         return False
 
 
@@ -40,31 +41,58 @@ class Spawn(Entity):
     def update(self):
         super().update()
         global entities
-        if len([e for e in entities if isinstance(e, Ant)]) < 50 and not self.colliding():
+        if len([e for e in entities if isinstance(e, Ant)]) < 50 and not self.colliding(1):
             if self.entity == "ant":
                 entities.append(Ant(self.pos, eval(*self.attributes)))
 
 
 class Ant(Entity):
-    def __init__(self, pos, angle=0, size=(5, 5), speed=8):
+    def __init__(self, pos, angle=0, size=(5, 5), speed=2):
         super().__init__(pos, size, (0, 0, 0), True, True)
         self.angle = angle
         self.speed = speed
+        self.job = 'scout'
+
+    def touch(self, coll_indices):
+        collided = []
+        for i in coll_indices:
+            collided.append(entities[i])
+
+        for entity in collided:
+            etype = type(entity)
+            if etype is Ant:
+                yield etype, entity.job
+            elif etype is Food:
+                yield etype
+            else:
+                yield 'obstacle'
+
+    def turn(self, coll_indices):
+        touch = self.touch(coll_indices)
+        for shared_info in touch:
+            if shared_info[0] is Ant:
+                if shared_info[1] == 'scout' and self.job == 'scout':
+                    # TODO better coordination
+                    self.angle += 180
+            elif shared_info[0] is Food:
+                pass
+            else:
+                self.angle = random.randint(0, 361)
 
     def move(self, offset):
         old_pos = self.rect.center
         self.rect.move_ip(offset)
-        if self.colliding():
+        collided = self.colliding(1)
+        if collided:
             for i in range(self.speed):
-                if self.colliding():
+                if self.colliding(1):
                     self.rect[0] += (1 if offset[0] < 0 else -1)  # Rect[0] -> upper-left angle's x
                     self.rect[1] += (1 if offset[1] < 0 else -1)  # Rect[1] -> upper-left angle's y
                 else:
                     break
             else:
                 self.rect.center = old_pos
-            self.angle = random.randint(0, 361)
-
+            self.turn(collided)
 
 
     def update(self):
@@ -83,6 +111,10 @@ class Ant(Entity):
 #                self.rect.y -= math.copysign(i, cspeed[1])
 
         self.angle += random.choice((-10, -5, 0, 5, 10), 1, p=(0.125, 0.25, 0.25, 0.25, 0.125))
+
+
+class Food(Entity):
+    pass
 
 
 def event_handle():
@@ -118,7 +150,7 @@ def main():
 
 pg.init()
 
-size = width, height = 600, 500
+size = width, height = 300, 200
 screen = pg.display.set_mode(size)
 screen_rect = screen.get_rect()
 clock = pg.time.Clock()
@@ -132,7 +164,5 @@ entities.append(Entity((0, height/2), (5, height), (0, 0, 0), True, True))  # le
 mouse_buttons = ()
 
 main()
-
-
 
 
