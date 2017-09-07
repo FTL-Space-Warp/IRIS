@@ -95,6 +95,16 @@ class Ant(Entity):
             self.turn(collided)
 
 
+    def trail(self, signal):
+        trail_left = False
+        touching_pheromones = [p for p in colliding(False) if type(p) is Pheromones]
+        for p in touching_pheromones:
+            if p.signal == signal:
+                p.strengthen()
+                trail_left = True
+        if not trail_left:
+            entities.append(Pheromones(self.pos, signal, 0.1))
+
     def update(self):
         super().update()
         cspeed = imath.speed_on_coord((self.speed, self.angle))
@@ -123,13 +133,17 @@ class Pheromones():
         self.signal = signal
         self.intensity = intensity
 
+    def strengthen(self, ant):
+        if self.intensity < 1:
+            self.intensity += 0.1
+
     def update(self):
         super().update()
         global entities
         if self.time >= 120:
-            self.intensity -= 1
+            self.intensity -= 0.1
             self.time = 0
-        if slef.intensity == 0
+        if self.intensity == 0:
             for i, e in enumerate(entities):
                 if e is self:
                     del entities[e]
