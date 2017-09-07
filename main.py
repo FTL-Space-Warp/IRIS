@@ -129,7 +129,7 @@ class Pheromones():
         if self.time >= 120:
             self.intensity -= 1
             self.time = 0
-        if slef.intensity == 0
+        if self.intensity == 0:
             for i, e in enumerate(entities):
                 if e is self:
                     del entities[e]
