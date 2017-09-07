@@ -33,36 +33,44 @@ class Entity():
 
 class Spawn(Entity):
     def __init__(self, pos, entity, attributes):
-        super().__init__(pos, (1, 1))
+        super().__init__(pos, (5, 5))
         self.entity = entity
         self.attributes = attributes
 
     def update(self):
         super().update()
         global entities
-        if len([e for e in entities if isinstance(e, Ant)]) < 50:
+        if len([e for e in entities if isinstance(e, Ant)]) < 50 and not self.colliding():
             if self.entity == "ant":
                 entities.append(Ant(self.pos, eval(*self.attributes)))
 
 
 class Ant(Entity):
-    def __init__(self, pos, angle=0, size=(5, 5), speed=5):
+    def __init__(self, pos, angle=0, size=(5, 5), speed=8):
         super().__init__(pos, size, (0, 0, 0), True, True)
         self.angle = angle
         self.speed = speed
 
-    def check_collisions(self, offset):
+    def move(self, offset):
+        old_pos = self.rect.center
         self.rect.move_ip(offset)
         if self.colliding():
-            while self.colliding():
-                self.rect[0] += (1 if offset[0] < 0 else -1)  # Rect[0] -> upper-left angle's x
-                self.rect[1] += (1 if offset[1] < 0 else -1)  # Rect[1] -> upper-left angle's y
+            for i in range(self.speed):
+                if self.colliding():
+                    self.rect[0] += (1 if offset[0] < 0 else -1)  # Rect[0] -> upper-left angle's x
+                    self.rect[1] += (1 if offset[1] < 0 else -1)  # Rect[1] -> upper-left angle's y
+                else:
+                    break
+            else:
+                self.rect.center = old_pos
             self.angle = random.randint(0, 361)
+
+
 
     def update(self):
         super().update()
         cspeed = imath.speed_on_coord((self.speed, self.angle))
-        self.check_collisions(cspeed)
+        self.move(cspeed)
 
 
 #        self.rect.x += cspeed[0]
