@@ -30,3 +30,22 @@ def pos_on_screen(pos, screen_pos, zoom):
     pixel_pos = (pos[0]*zoom, pos[1]*zoom)
     pos_on_screen = (pixel_pos[0]-screen_pos[0], pixel_pos[1]-screen_pos[1])
     return pos_on_screen
+
+def direction(pos1, pos2):
+
+    x_d = abs(pos1[0] - pos2[0])
+    y_d = abs(pos1[1] - pos2[1])
+    cdistance = (x_d, y_d)
+
+    if cdistance[0] == 0 and cdistance[1] > 0:
+        angle = 90
+    elif cdistance[0] == 0 and cdistance[1] < 0:
+        angle = -90
+    elif cdistance[1] == 0 and cdistance[0] >= 0:
+        angle = 0
+    elif cdistance[1] == 0 and cdistance[0] < 0:
+        angle = 180
+    else:
+        angle = math.degrees(math.atan(cdistance[1]/cdistance[0]))
+    distance = math.sqrt(distance[0] ** 2 + distance[1] ** 2)
+    return [angle, distance]
