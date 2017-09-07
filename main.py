@@ -117,6 +117,23 @@ class Food(Entity):
     pass
 
 
+class Pheromones():
+    def __init__(self, pos, signal, intensity):
+        super().__init__(pos, (3, 3))
+        self.signal = signal
+        self.intensity = intensity
+
+    def update(self):
+        super().update()
+        global entities
+        if self.time >= 120:
+            self.intensity -= 1
+            self.time = 0
+        if slef.intensity == 0
+            for i, e in enumerate(entities):
+                if e is self:
+                    del entities[e]
+
 def event_handle():
     global done
 
@@ -164,5 +181,4 @@ entities.append(Entity((0, height/2), (5, height), (0, 0, 0), True, True))  # le
 mouse_buttons = ()
 
 main()
-
 
