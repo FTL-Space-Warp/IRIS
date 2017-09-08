@@ -55,13 +55,13 @@ class Spawn(Entity):
 
 
 class Ant(Entity):
-    def __init__(self, pos, angle=0, size=(5, 5), speed=2, smell_area=(8, 8)):
+    def __init__(self, pos, angle=0, size=(5, 5), speed=2, smell_area=(15, 15)):
         super().__init__(pos, size, (0, 0, 0), True, True)
         self.angle = angle
         self.speed = speed
         self.smell_rect = pg.Rect(self.rect.center, smell_area)
         self.job = 'scout'
-        self.inventory = ''
+        self.inventory = None
 
     def touch(self, coll_indices):
         collided = []
@@ -95,8 +95,9 @@ class Ant(Entity):
         self.rect.move_ip(offset)
         collided = self.colliding(1)
         if collided:
-            for e in collided:
-                if type(e) is Food and self.job == 'scouting':
+            for i in collided:
+                e = entities[i]
+                if type(e) is Food and self.job == 'scout':
                     self.grab(e)
 
             for i in range(self.speed):
@@ -121,15 +122,19 @@ class Ant(Entity):
 
     def smell(self):
         self.smell_rect.center = self.rect.center
-        for i in self.smell_rect.collidelistall([e.rect for e in entities if e is not self]):
+        for i in self.smell_rect.collidelistall([e.rect for e in entities if e is not self and not e.follow]):
             entity = entities[i]
             if type(entity) is Food:
                 return imath.direction(self.rect.center, entity.rect.center)
         return None 
 
     def grab(self, entity):
-        entity.follow = self
-        entity.visible = False
+        if not self.inventory:
+            entity.follow = self
+            entity.visible = False
+            entity.solid = False
+            self.inventory = entity
+            self.color = (255, 0, 0)
 
     def update(self):
         super().update()
