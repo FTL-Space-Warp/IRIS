@@ -177,6 +177,7 @@ class Pheromones(Entity):
             self.remove()
 
 
+
 def event_handle():
     global done
     for event in pg.event.get():

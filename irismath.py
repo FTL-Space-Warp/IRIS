@@ -47,5 +47,5 @@ def direction(pos1, pos2):
         angle = 180
     else:
         angle = math.degrees(math.atan(cdistance[1]/cdistance[0]))
-    distance = math.sqrt(distance[0] ** 2 + distance[1] ** 2)
+    distance = math.sqrt(cdistance[0] ** 2 + cdistance[1] ** 2)
     return [angle, distance]
