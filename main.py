@@ -26,9 +26,9 @@ class Entity():
         self.time += 1
 
     def colliding(self, solid_only):
-        touching = self.rect.collidelistall([e.rect for e in entities  if e is not self and (solid_only == False or e.solid == True)])
+        touching = self.rect.collidelistall([e.rect for e in entities if e is not self and ((not solid_only) or e.solid)])
         if touching != -1:
-            return touching # returns entity's class name
+            return touching  # returns entity's class name
         return False
 
 
@@ -94,10 +94,9 @@ class Ant(Entity):
                 self.rect.center = old_pos
             self.turn(collided)
 
-
     def trail(self, signal):
         trail_left = False
-        touching_pheromones = [p for p in colliding(False) if type(p) is Pheromones]
+        touching_pheromones = [p for p in self.colliding(False) if type(p) is Pheromones]
         for p in touching_pheromones:
             if p.signal == signal:
                 p.strengthen()
@@ -148,9 +147,9 @@ class Pheromones():
                 if e is self:
                     del entities[e]
 
+
 def event_handle():
     global done
-
     for event in pg.event.get():
         if event.type == pg.QUIT:
             done = True
@@ -195,4 +194,3 @@ entities.append(Entity((0, height/2), (5, height), (0, 0, 0), True, True))  # le
 mouse_buttons = ()
 
 main()
-
