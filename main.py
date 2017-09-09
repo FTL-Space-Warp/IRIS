@@ -64,7 +64,7 @@ class Ant(Entity):
         self.smell_rect = pg.Rect(self.rect.center, (15, 15))
         self.job = 'scout'
         self.inventory = None
-        self.strenght = self.weight*10
+        self.strength = self.weight*10
 
     def touch(self, coll_indices):
         collided = []
@@ -132,7 +132,7 @@ class Ant(Entity):
         return None
 
     def grab(self, entity):
-        if not self.inventory and self.strenght >= entity.weight:
+        if not self.inventory and self.strength >= entity.weight:
             entity.follow = self
             entity.visible = False
             entity.solid = False
