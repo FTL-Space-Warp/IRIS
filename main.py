@@ -8,7 +8,7 @@ from numpy import random
 
 
 class Entity():
-    def __init__(self, pos, size=(1, 1), color=(0, 0, 0), visible=False, solid=False):
+    def __init__(self, pos, size=(1, 1), color=(0, 0, 0), visible=False, solid=False, weight=0):
         self.size = size
         self.color = color
         self.rect = pg.Rect((0, 0), size)
@@ -16,6 +16,8 @@ class Entity():
         self.visible = visible
         self.time = 0
         self.solid = solid
+        if solid:
+            self.weight = weight
         self.follow = False
 
     def draw(self, surface):
@@ -55,13 +57,14 @@ class Spawn(Entity):
 
 
 class Ant(Entity):
-    def __init__(self, pos, angle=0, size=(5, 5), speed=2, smell_area=(15, 15)):
-        super().__init__(pos, size, (0, 0, 0), True, True)
+    def __init__(self, pos, angle=0, size=(5, 5), weight=1, speed=2):
+        super().__init__(pos, size, (0, 0, 0), True, True, weight)
         self.angle = angle
         self.speed = speed
-        self.smell_rect = pg.Rect(self.rect.center, smell_area)
+        self.smell_rect = pg.Rect(self.rect.center, (15, 15))
         self.job = 'scout'
         self.inventory = None
+        self.strenght = self.weight*10
 
     def touch(self, coll_indices):
         collided = []
@@ -124,12 +127,12 @@ class Ant(Entity):
         self.smell_rect.center = self.rect.center
         for i in self.smell_rect.collidelistall([e.rect for e in entities if e is not self and not e.follow]):
             entity = entities[i]
-            if type(entity) is Food:
+            if type(entity) is Food and not self.inventory:
                 return imath.direction(self.rect.center, entity.rect.center)
-        return None 
+        return None
 
     def grab(self, entity):
-        if not self.inventory:
+        if not self.inventory and self.strenght >= entity.weight:
             entity.follow = self
             entity.visible = False
             entity.solid = False
@@ -148,17 +151,14 @@ class Ant(Entity):
 
 
 class Food(Entity):
-    def __init__(self, pos, size, quantity):
-        super().__init__(pos, size, (0, 102, 0), True, True)
-        self.quantity = quantity
+    def __init__(self, pos, size, weight=1):
+        super().__init__(pos, size, (0, 102, 0), True, True, weight)
 
     def update(self):
         super().update()
-        if self.time >= 3600:
+        if self.time >= 36000:
             self.time = 0
-            self.quantity -= 0.1  # TODO more realistic rotting
-            if self.quantity <= 0:
-                self.remove()
+            self.remove()  # TODO more realistic rotting
 
 
 
