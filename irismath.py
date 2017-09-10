@@ -18,7 +18,9 @@ def direction(pos1, pos2):
     x_d = abs(pos1[0] - pos2[0])
     y_d = abs(pos1[1] - pos2[1])
     cdistance = (x_d, y_d)
-    outofrange = pos1[1] < pos2[1]
+    outofrange = pos1[1] > pos2[1]
+
+    distance = math.sqrt(cdistance[0] ** 2 + cdistance[1] ** 2)
 
     if cdistance[0] == 0 and cdistance[1] > 0:
         angle = 90
@@ -29,9 +31,12 @@ def direction(pos1, pos2):
     elif cdistance[1] == 0 and cdistance[0] < 0:
         angle = 180
     else:
-        angle = math.degrees(math.atan(cdistance[1]/cdistance[0]))
+        angle = math.degrees(math.acos(cdistance[0]/distance))
         if outofrange:
+            print("out")
+            print(angle)
             angle += 180
 
-    distance = math.sqrt(cdistance[0] ** 2 + cdistance[1] ** 2)
+    print(angle)
+    input()
     return [angle, distance]
