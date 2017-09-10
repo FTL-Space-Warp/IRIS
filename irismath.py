@@ -1,22 +1,5 @@
 import math
 
-# def velocity_vector(cspeed):
-#     """ Takes the speed on each coordinate and returns the velocity."""
-# 
-#     if cspeed[0] == 0 and cspeed[1] > 0:
-#         angle = 90
-#     elif cspeed[0] == 0 and cspeed[1] < 0:
-#         angle = -90
-#     elif cspeed[1] == 0 and cspeed[0] >= 0:
-#         angle = 0
-#     elif cspeed[1] == 0 and cspeed[0] < 0:
-#         angle = 180
-#     else:
-#         angle = math.degrees(math.atan(cspeed[1]/cspeed[0]))
-#     speed = math.sqrt(cspeed[0] ** 2 + cspeed[1] ** 2)
-#     return [speed, angle]
-
-
 def speed_on_coord(velocity):
     """ Returns speed on x and y from velocity """
 
@@ -32,10 +15,10 @@ def pos_on_screen(pos, screen_pos, zoom):
     return pos_on_screen
 
 def direction(pos1, pos2):
-
     x_d = abs(pos1[0] - pos2[0])
     y_d = abs(pos1[1] - pos2[1])
     cdistance = (x_d, y_d)
+    outofrange = pos1[1] < pos2[1]
 
     if cdistance[0] == 0 and cdistance[1] > 0:
         angle = 90
@@ -47,5 +30,8 @@ def direction(pos1, pos2):
         angle = 180
     else:
         angle = math.degrees(math.atan(cdistance[1]/cdistance[0]))
+        if outofrange:
+            angle += 180
+
     distance = math.sqrt(cdistance[0] ** 2 + cdistance[1] ** 2)
     return [angle, distance]
