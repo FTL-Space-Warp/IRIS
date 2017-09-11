@@ -9,10 +9,12 @@ def speed_on_coord(velocity):
     cspeed = [speed_x, speed_y]
     return cspeed
 
+
 def pos_on_screen(pos, screen_pos, zoom):
     pixel_pos = (pos[0]*zoom, pos[1]*zoom)
     pos_on_screen = (pixel_pos[0]-screen_pos[0], pixel_pos[1]-screen_pos[1])
     return pos_on_screen
+
 
 def direction(pos1, pos2):
     x_d = abs(pos1[0] - pos2[0])
@@ -33,10 +35,6 @@ def direction(pos1, pos2):
     else:
         angle = math.degrees(math.acos(cdistance[0]/distance))
         if outofrange:
-            print("out")
-            print(angle)
             angle += 180
 
-    print(angle)
-    input()
     return [angle, distance]
