@@ -30,10 +30,15 @@ class Entity():
             self.rect.center = self.follow.rect.center
 
     def colliding(self, solid_only):
-        touching = self.rect.collidelistall([e.rect for e in entities if e is not self and ((not solid_only) or e.solid)])
-        if touching != -1:
-            return touching  # returns entity's class name
-        return False
+        elist = [e for e in entities if e is not self and ((not solid_only) or e.solid)]
+        icoll = self.rect.collidelistall([e.rect for e in elist])
+        if icoll == -1:
+            return False
+        else:
+            ecoll = []
+            for i in icoll:
+                ecoll.append(elist[i])
+        return ecoll
 
     def remove(self):
         global entities
@@ -51,7 +56,7 @@ class Spawn(Entity):
     def update(self):
         super().update()
         global entities
-        if len([e for e in entities if isinstance(e, Ant)]) < 1 and not self.colliding(1):
+        if len([e for e in entities if isinstance(e, Ant)]) < 50 and not self.colliding(1):
             if self.entity == "ant":
                 entities.append(Ant(self.rect.center, eval(*self.attributes)))
 
@@ -66,12 +71,8 @@ class Ant(Entity):
         self.inventory = None
         self.strength = self.weight*10
 
-    def touch(self, coll_indices):
-        collided = []
-        for i in coll_indices:
-            collided.append(entities[i])
-
-        for entity in collided:
+    def touch(self, ecoll):
+        for entity in ecoll:
             etype = type(entity)
             if etype is Ant:
                 yield etype, entity.job
@@ -80,8 +81,8 @@ class Ant(Entity):
             else:
                 yield ['obstacle']
 
-    def turn(self, coll_indices):
-        touch = self.touch(coll_indices)
+    def turn(self, ecoll):
+        touch = self.touch(ecoll)
         for shared_info in touch:
             if shared_info[0] is Ant:
                 if shared_info[1] == 'scout' and self.job == 'scout':
@@ -92,14 +93,12 @@ class Ant(Entity):
             else:
                 self.angle = random.randint(0, 361)
 
-
     def move(self, offset):
         old_pos = self.rect.center
         self.rect.move_ip(offset)
         collided = self.colliding(1)
         if collided:
-            for i in collided:
-                e = entities[i]
+            for e in collided:
                 if type(e) is Food and self.job == 'scout':
                     self.grab(e)
 
@@ -125,10 +124,11 @@ class Ant(Entity):
 
     def smell(self):
         self.smell_rect.center = self.rect.center
-        for i in self.smell_rect.collidelistall([e.rect for e in entities if e is not self and not e.follow]):
-            entity = entities[i]
+        elist = [e for e in entities if not e is self and not e.follow]
+        for i in self.smell_rect.collidelistall([e.rect for e in elist]):
+            entity = elist[i]
             if type(entity) is Food and not self.inventory:
-                return imath.direction(self.rect.center, entity.rect.center)
+                return imath.direction(self.rect.center, entity.rect.center)[0]
         return None
 
     def grab(self, entity):
@@ -143,9 +143,9 @@ class Ant(Entity):
         super().update()
         cspeed = imath.speed_on_coord((self.speed, self.angle))
         self.move(cspeed)
-        smell_vector = self.smell()
-        if smell_vector:
-            self.angle = smell_vector[1]
+        smell_angle = self.smell()
+        if smell_angle:
+            self.angle = smell_angle
         else:
             self.angle += random.choice((-10, -5, 0, 5, 10), 1, p=(0.125, 0.25, 0.25, 0.25, 0.125))
 
@@ -159,7 +159,6 @@ class Food(Entity):
         if self.time >= 36000:
             self.time = 0
             self.remove()  # TODO more realistic rotting
-
 
 
 class Pheromones(Entity):
@@ -182,7 +181,6 @@ class Pheromones(Entity):
             self.remove()
 
 
-
 def event_handle():
     global done
     for event in pg.event.get():
@@ -192,7 +190,7 @@ def event_handle():
         if event.type == pg.MOUSEBUTTONDOWN:
             mouse_buttons = pg.mouse.get_pressed()
 
-            if mouse_buttons[0] == True:
+            if mouse_buttons[0]:
                 entities.append(Food(event.pos, (2, 2), 1))
 
 
@@ -200,6 +198,8 @@ def render():
     pg.display.set_caption(f"IRIS - {math.ceil(clock.get_fps())} FPS - {len(entities)} Entities")
     screen.fill((255, 255, 255))
     for entity in entities:
+#        if type(entity) is Ant:
+#            pg.draw.rect(screen, (0, 255, 0), entity.smell_rect)
         entity.draw(screen)
     pg.display.flip()
 
@@ -215,7 +215,7 @@ def main():
 
 pg.init()
 
-size = width, height = 300, 200
+size = width, height = 600, 400
 screen = pg.display.set_mode(size)
 screen_rect = screen.get_rect()
 clock = pg.time.Clock()
