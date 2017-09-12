@@ -124,7 +124,7 @@ class Ant(Entity):
 
     def smell(self):
         self.smell_rect.center = self.rect.center
-        elist = [e for e in entities if not e is self and not e.follow]
+        elist = [e for e in entities if e is not self and not e.follow]
         for i in self.smell_rect.collidelistall([e.rect for e in elist]):
             entity = elist[i]
             if type(entity) is Food and not self.inventory:
