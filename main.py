@@ -59,6 +59,9 @@ class Spawn(Entity):
         if len([e for e in entities if isinstance(e, Ant)]) < 50 and not self.colliding(1):
             if self.entity == "ant":
                 entities.append(Ant(self.rect.center, eval(*self.attributes)))
+        for e in self.colliding(True):
+            if type(e) is Food:
+                e.remove()
 
 
 class Ant(Entity):
@@ -87,11 +90,11 @@ class Ant(Entity):
             if shared_info[0] is Ant:
                 if shared_info[1] == 'scout' and self.job == 'scout':
                     # TODO better coordination
-                    self.angle += 180
+                    return self.angle + 180
             elif shared_info[0] is Food:
                 pass
             else:
-                self.angle = random.randint(0, 361)
+                return random.randint(0, 361)
 
     def move(self, offset):
         old_pos = self.rect.center
@@ -110,7 +113,7 @@ class Ant(Entity):
                     break
             else:
                 self.rect.center = old_pos
-            self.turn(collided)
+            return self.turn(collided)
 
     def trail(self, signal):
         trail_left = False
@@ -125,10 +128,21 @@ class Ant(Entity):
     def smell(self):
         self.smell_rect.center = self.rect.center
         elist = [e for e in entities if e is not self and not e.follow]
+
         for i in self.smell_rect.collidelistall([e.rect for e in elist]):
             entity = elist[i]
-            if type(entity) is Food and not self.inventory:
+            etype = type(entity)
+
+            if etype is Food and not self.inventory:
                 return imath.direction(self.rect.center, entity.rect.center)[0]
+
+            elif etype is Pheromones:
+                if entity.signal == 'food' and self.job == 'scout' and not self.inventory:
+                    return random.choice(
+                            (imath.direction(
+                                self.rect.center, entity.rect.center)[0],
+                             None), 1,
+                            (entity.intensity, 1-entity.intensity))
         return None
 
     def grab(self, entity):
@@ -139,15 +153,30 @@ class Ant(Entity):
             self.inventory = entity
             self.color = (255, 0, 0)
 
+    def drop(self):
+        self.inventory.follow = False
+        drop_distance = (math.sqrt(2 * (self.size[0] ** 2)) +
+                         math.sqrt(self.inventory.size[0] ** 2 +
+                                   self.inventory.size[1] ** 2)) / 2
+        # (ant's diagonal + item's diagonal) / 2
+        self.inventory.rect.center += imath.speed_on_coord((drop_distance, self.angle))
+
     def update(self):
         super().update()
         cspeed = imath.speed_on_coord((self.speed, self.angle))
-        self.move(cspeed)
-        smell_angle = self.smell()
-        if smell_angle:
-            self.angle = smell_angle
+        angle = self.move(cspeed)
+
+        if angle:  # makes sure move() has priority over smell()
+            self.angle = angle
         else:
-            self.angle += random.choice((-10, -5, 0, 5, 10), 1, p=(0.125, 0.25, 0.25, 0.25, 0.125))
+            angle = self.smell()
+            if angle:
+                self.angle = angle
+            else:
+                self.angle += random.choice((-10, -5, 0, 5, 10), 1, p=(0.125, 0.25, 0.25, 0.25, 0.125))
+
+        if type(self.inventory) is Food:
+            self.trail('food')
 
 
 class Food(Entity):
