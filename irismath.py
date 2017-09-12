@@ -17,10 +17,9 @@ def pos_on_screen(pos, screen_pos, zoom):
 
 
 def direction(pos1, pos2):
-    x_d = abs(pos1[0] - pos2[0])
-    y_d = abs(pos1[1] - pos2[1])
+    x_d = pos2[0] - pos1[0]
+    y_d = pos2[1] - pos1[1]
     cdistance = (x_d, y_d)
-    outofrange = pos1[1] > pos2[1]
 
     distance = math.sqrt(cdistance[0] ** 2 + cdistance[1] ** 2)
 
@@ -33,8 +32,12 @@ def direction(pos1, pos2):
     elif cdistance[1] == 0 and cdistance[0] < 0:
         angle = 180
     else:
+        print(cdistance)
         angle = math.degrees(math.acos(cdistance[0]/distance))
-        if outofrange:
-            angle += 180
+        if pos1[1] > pos2[1]:
+            if pos1[0] < pos2[0]:
+                angle -= 90
+            else:
+                angle += 90
 
     return [angle, distance]
