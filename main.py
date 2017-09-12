@@ -117,7 +117,7 @@ class Ant(Entity):
         touching_pheromones = [p for p in self.colliding(False) if type(p) is Pheromones]
         for p in touching_pheromones:
             if p.signal == signal:
-                p.strengthen()
+                p.strengthen(self)
                 trail_left = True
         if not trail_left:
             entities.append(Pheromones(self.rect.center, signal, 0.1))
@@ -166,10 +166,12 @@ class Pheromones(Entity):
         super().__init__(pos, (3, 3), (255, 153, 255), True)
         self.signal = signal
         self.intensity = intensity
+        self.last_ant = None
 
     def strengthen(self, ant):
-        if self.intensity < 1:
+        if self.intensity < 1 and ant is not self.last_ant:
             self.intensity += 0.1
+            self.last_ant = ant
 
     def update(self):
         super().update()
