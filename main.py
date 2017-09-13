@@ -69,7 +69,7 @@ class Ant(Entity):
         super().__init__(pos, size, (0, 0, 0), True, True, weight)
         self.angle = angle
         self.speed = speed
-        self.smell_rect = pg.Rect(self.rect.center, (500, 500))
+        self.smell_rect = pg.Rect(self.rect.center, (30, 30))
         self.job = 'scout'
         self.inventory = None
         self.strength = self.weight*10
@@ -91,19 +91,20 @@ class Ant(Entity):
                 if shared_info[1] == 'scout' and self.job == 'scout':
                     # TODO better coordination
                     return self.angle + 180
-            elif shared_info[0] is Food:
-                pass
             else:
                 return random.randint(0, 361)
 
     def move(self, offset):
         old_pos = self.rect.center
         self.rect.move_ip(offset)
-        collided = self.colliding(1)
+        collided = self.colliding(0)
         if collided:
             for e in collided:
                 if type(e) is Food and self.job == 'scout':
                     self.grab(e)
+                elif type(e) is Spawn and self.job == 'scout' \
+                        and type(self.inventory) is Food:
+                    self.drop()
 
             for i in range(self.speed):
                 if self.colliding(1):
@@ -113,7 +114,10 @@ class Ant(Entity):
                     break
             else:
                 self.rect.center = old_pos
-            return self.turn(collided)
+
+            for e in collided:
+                if e.solid:  # ants turn only if touching something solid
+                    return self.turn(collided)
 
     def trail(self, signal):
         trail_left = False
@@ -146,7 +150,8 @@ class Ant(Entity):
         return None
 
     def grab(self, entity):
-        if not self.inventory and self.strength >= entity.weight:
+        if not self.inventory and self.strength >= entity.weight \
+                and entity.solid:
             entity.follow = self
             entity.visible = False
             entity.solid = False
@@ -155,11 +160,18 @@ class Ant(Entity):
 
     def drop(self):
         self.inventory.follow = False
+        self.inventory.solid = True
         drop_distance = (math.sqrt(2 * (self.size[0] ** 2)) +
                          math.sqrt(self.inventory.size[0] ** 2 +
                                    self.inventory.size[1] ** 2)) / 2
         # (ant's diagonal + item's diagonal) / 2
-        self.inventory.rect.center += imath.speed_on_coord((drop_distance, self.angle))
+        self.inventory.rect.center = (
+            self.inventory.rect.center[0] +
+            imath.speed_on_coord((drop_distance, self.angle))[0],
+            self.inventory.rect.center[1] +
+            imath.speed_on_coord((drop_distance, self.angle))[1]
+            )
+        self.inventory = None
 
     def update(self):
         super().update()
@@ -169,7 +181,7 @@ class Ant(Entity):
         if angle:  # makes sure move() has priority over smell()
             self.angle = angle
         elif self.inventory and self.job == 'scout':
-            self.angle = imath.direction(self.rect.center, [e.rect.center for e in entities if type(e) is Spawn][0])
+            self.angle = imath.direction(self.rect.center, [e.rect.center for e in entities if type(e) is Spawn][0])[0]
         else:
             angle = self.smell()
             if angle:
