@@ -69,7 +69,7 @@ class Ant(Entity):
         super().__init__(pos, size, (0, 0, 0), True, True, weight)
         self.angle = angle
         self.speed = speed
-        self.smell_rect = pg.Rect(self.rect.center, (15, 15))
+        self.smell_rect = pg.Rect(self.rect.center, (500, 500))
         self.job = 'scout'
         self.inventory = None
         self.strength = self.weight*10
@@ -168,6 +168,8 @@ class Ant(Entity):
 
         if angle:  # makes sure move() has priority over smell()
             self.angle = angle
+        elif self.inventory and self.job == 'scout':
+            self.angle = imath.direction(self.rect.center, [e.rect.center for e in entities if type(e) is Spawn][0])
         else:
             angle = self.smell()
             if angle:
@@ -260,3 +262,4 @@ entities.append(Entity((0, height/2), (5, height), (0, 0, 0), True, True))  # le
 mouse_buttons = ()
 
 main()
+
