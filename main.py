@@ -49,19 +49,17 @@ class Entity():
 
 class Spawn(Entity):
     def __init__(self, pos, entity, attributes):
-        super().__init__(pos, (5, 5))
+        super().__init__(pos, (10, 10))
         self.entity = entity
         self.attributes = attributes
 
     def update(self):
         super().update()
         global entities
-        if len([e for e in entities if isinstance(e, Ant)]) < 50 and not self.colliding(1):
+        if len([e for e in entities if isinstance(e, Ant)]) < 50 \
+                and not self.colliding(1):
             if self.entity == "ant":
                 entities.append(Ant(self.rect.center, eval(*self.attributes)))
-        for e in self.colliding(True):
-            if type(e) is Food:
-                e.remove()
 
 
 class Ant(Entity):
@@ -78,7 +76,7 @@ class Ant(Entity):
         for entity in ecoll:
             etype = type(entity)
             if etype is Ant:
-                yield etype, entity.job
+                yield etype, entity.job, entity.inventory
             elif etype is Food:
                 yield [etype]
             else:
@@ -89,6 +87,8 @@ class Ant(Entity):
         for shared_info in touch:
             if shared_info[0] is Ant:
                 if shared_info[1] == 'scout' and self.job == 'scout':
+                    if type(shared_info[2]) is Food:
+                        return self.angle + random.choice((-90, 90), p=(0.5, 0.5))
                     # TODO better coordination
                     return self.angle + 180
             else:
@@ -100,7 +100,8 @@ class Ant(Entity):
         collided = self.colliding(0)
         if collided:
             for e in collided:
-                if type(e) is Food and self.job == 'scout':
+                if type(e) is Food and self.job == 'scout' \
+                        and not self.inventory:
                     self.grab(e)
                 elif type(e) is Spawn and self.job == 'scout' \
                         and type(self.inventory) is Food:
@@ -118,6 +119,7 @@ class Ant(Entity):
             for e in collided:
                 if e.solid:  # ants turn only if touching something solid
                     return self.turn(collided)
+        return None
 
     def trail(self, signal):
         trail_left = False
@@ -145,8 +147,8 @@ class Ant(Entity):
                     return random.choice(
                             (imath.direction(
                                 self.rect.center, entity.rect.center)[0],
-                             None), 1,
-                            (entity.intensity, 1-entity.intensity))
+                             None),
+                            p=(entity.intensity, 1-entity.intensity))
         return None
 
     def grab(self, entity):
@@ -159,19 +161,21 @@ class Ant(Entity):
             self.color = (255, 0, 0)
 
     def drop(self):
-        self.inventory.follow = False
-        self.inventory.solid = True
-        drop_distance = (math.sqrt(2 * (self.size[0] ** 2)) +
-                         math.sqrt(self.inventory.size[0] ** 2 +
-                                   self.inventory.size[1] ** 2)) / 2
-        # (ant's diagonal + item's diagonal) / 2
-        self.inventory.rect.center = (
-            self.inventory.rect.center[0] +
-            imath.speed_on_coord((drop_distance, self.angle))[0],
-            self.inventory.rect.center[1] +
-            imath.speed_on_coord((drop_distance, self.angle))[1]
-            )
-        self.inventory = None
+        if self.inventory:
+            self.inventory.follow = False
+            self.inventory.solid = True
+            drop_distance = (math.sqrt(2 * (self.size[0] ** 2)) +
+                             math.sqrt(self.inventory.size[0] ** 2 +
+                                       self.inventory.size[1] ** 2)) / 2
+            # (ant's diagonal + item's diagonal) / 2
+            self.inventory.rect.center = (
+                self.inventory.rect.center[0] +
+                imath.speed_on_coord((drop_distance, self.angle))[0],
+                self.inventory.rect.center[1] +
+                imath.speed_on_coord((drop_distance, self.angle))[1]
+                )
+            self.inventory = None
+            self.color = (0, 0, 0)
 
     def update(self):
         super().update()
@@ -180,16 +184,17 @@ class Ant(Entity):
 
         if angle:  # makes sure move() has priority over smell()
             self.angle = angle
-        elif self.inventory and self.job == 'scout':
+        elif type(self.inventory) is Food and self.job == 'scout':
             self.angle = imath.direction(self.rect.center, [e.rect.center for e in entities if type(e) is Spawn][0])[0]
+        #    self.angle += random.choice((-20, 0, 20), p=(0.3, 0, 0.7))
         else:
             angle = self.smell()
             if angle:
                 self.angle = angle
             else:
-                self.angle += random.choice((-10, -5, 0, 5, 10), 1, p=(0.125, 0.25, 0.25, 0.25, 0.125))
+                self.angle += random.choice((-10, -5, 0, 5, 10), p=(0.125, 0.25, 0.25, 0.25, 0.125))
 
-        if type(self.inventory) is Food:
+        if type(self.inventory) is Food and self.job == 'scout':
             self.trail('food')
 
 
@@ -199,9 +204,14 @@ class Food(Entity):
 
     def update(self):
         super().update()
-        if self.time >= 36000:
+        if self.time >= 36000 and not self.follow:
             self.time = 0
             self.remove()  # TODO more realistic rotting
+        else:
+            for e in self.colliding(0):
+                if type(e) is Spawn:
+                    self.remove()
+                    break
 
 
 class Pheromones(Entity):
@@ -212,14 +222,14 @@ class Pheromones(Entity):
         self.last_ant = None
 
     def strengthen(self, ant):
-        if self.intensity < 1 and ant is not self.last_ant:
+        if (self.intensity + 0.1) < 1 and ant is not self.last_ant:
             self.intensity += 0.1
             self.last_ant = ant
 
     def update(self):
         super().update()
         global entities
-        if self.time >= 120:
+        if self.time >= 200:
             self.intensity -= 0.1
             self.time = 0
         if self.intensity <= 0:
