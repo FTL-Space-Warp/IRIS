@@ -89,7 +89,8 @@ class Ant(Entity):
             if shared_info[0] is Ant:
                 if shared_info[1] == 'scout' and self.job == 'scout':
                     if type(shared_info[2]) is Food:
-                        return self.angle + random.choice((-90, 90), p=(0.5, 0.5))
+                        return self.angle \
+                                    + random.choice((-90, 90), p=(0.5, 0.5))
                     # TODO better coordination
                     return self.angle + 180
             else:
@@ -110,8 +111,10 @@ class Ant(Entity):
 
             for i in range(self.speed):
                 if self.colliding(1):
-                    self.rect[0] += (1 if offset[0] < 0 else -1)  # Rect[0] -> upper-left angle's x
-                    self.rect[1] += (1 if offset[1] < 0 else -1)  # Rect[1] -> upper-left angle's y
+                    # Rect[0] -> upper-left angle's x
+                    self.rect[0] += (1 if offset[0] < 0 else -1)
+                    # Rect[1] -> upper-left angle's y
+                    self.rect[1] += (1 if offset[1] < 0 else -1)
                 else:
                     break
             else:
@@ -124,7 +127,8 @@ class Ant(Entity):
 
     def trail(self, signal):
         trail_left = False
-        touching_pheromones = [p for p in self.colliding(False) if type(p) is Pheromones]
+        touching_pheromones = \
+            [p for p in self.colliding(False) if type(p) is Pheromones]
         for p in touching_pheromones:
             if p.signal == signal:
                 p.strengthen(self)
@@ -149,18 +153,18 @@ class Ant(Entity):
                 if entity.signal == 'food'  \
                                     and self.job == 'scout' \
                                     and not self.inventory \
-                                    and entity not in self.last_smell:
-
-                    # avoid circling around the same pheromone
-                    self.last_smell.append(entity)
-                    del self.last_smell[0]
+                                    :
+                            #        and entity not in self.last_smell:
 
                     # ants won't always follow the trail
                     if random.choice((0, 1),
                                      p=(1-entity.intensity, entity.intensity)):
-                        if ((angle - self.angle) % 360) > 180:
+                        # only look for pheromones in front of ants so that
+                        # they can follow the trails without turning back
+                        if ((angle - self.angle) % 360) > 270:
                             return self.angle - 20  # turn left
-                        return self.angle + 20      # turn right
+                        elif ((angle - self.angle) % 360) < 90:
+                            return self.angle + 20  # turn right
 
         return None
 
