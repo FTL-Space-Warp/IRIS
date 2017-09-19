@@ -71,7 +71,6 @@ class Ant(Entity):
         self.job = 'scout'
         self.inventory = None
         self.strength = self.weight * 10
-        self.last_smell = [None] * 5
 
     def touch(self, ecoll):
         for entity in ecoll:
