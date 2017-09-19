@@ -70,7 +70,8 @@ class Ant(Entity):
         self.smell_rect = pg.Rect(self.rect.center, (30, 30))
         self.job = 'scout'
         self.inventory = None
-        self.strength = self.weight*10
+        self.strength = self.weight * 10
+        self.last_smell = [None] * 5
 
     def touch(self, ecoll):
         for entity in ecoll:
@@ -143,12 +144,24 @@ class Ant(Entity):
                 return imath.direction(self.rect.center, entity.rect.center)[0]
 
             elif etype is Pheromones:
-                if entity.signal == 'food' and self.job == 'scout' and not self.inventory:
-                    return random.choice(
-                            (imath.direction(
-                                self.rect.center, entity.rect.center)[0],
-                             None),
-                            p=(entity.intensity, 1-entity.intensity))
+                angle = imath.direction(self.rect.center,
+                                        entity.rect.center)[0]
+                if entity.signal == 'food'  \
+                                    and self.job == 'scout' \
+                                    and not self.inventory \
+                                    and entity not in self.last_smell:
+
+                    # avoid circling around the same pheromone
+                    self.last_smell.append(entity)
+                    del self.last_smell[0]
+
+                    # ants won't always follow the trail
+                    if random.choice((0, 1),
+                                     p=(1-entity.intensity, entity.intensity)):
+                        if ((angle - self.angle) % 360) > 180:
+                            return self.angle - 20  # turn left
+                        return self.angle + 20      # turn right
+
         return None
 
     def grab(self, entity):
@@ -185,7 +198,10 @@ class Ant(Entity):
         if angle:  # makes sure move() has priority over smell()
             self.angle = angle
         elif type(self.inventory) is Food and self.job == 'scout':
-            self.angle = imath.direction(self.rect.center, [e.rect.center for e in entities if type(e) is Spawn][0])[0]
+            self.angle = imath.direction(
+                    self.rect.center,
+                    [e.rect.center
+                        for e in entities if type(e) is Spawn][0])[0]
         #    self.angle += random.choice((-20, 0, 20), p=(0.3, 0, 0.7))
         else:
             angle = self.smell()
@@ -222,14 +238,14 @@ class Pheromones(Entity):
         self.last_ant = None
 
     def strengthen(self, ant):
-        if (self.intensity + 0.1) < 1 and ant is not self.last_ant:
-            self.intensity += 0.1
+        if (self.intensity + 0.2) < 1 and ant is not self.last_ant:
+            self.intensity += 0.2
             self.last_ant = ant
 
     def update(self):
         super().update()
         global entities
-        if self.time >= 200:
+        if self.time >= 100:
             self.intensity -= 0.1
             self.time = 0
         if self.intensity <= 0:
@@ -247,10 +263,12 @@ def event_handle():
 
             if mouse_buttons[0]:
                 entities.append(Food(event.pos, (2, 2), 1))
+#                entities.append(Pheromones(event.pos, 'food', 1))
 
 
 def render():
-    pg.display.set_caption(f"IRIS - {math.ceil(clock.get_fps())} FPS - {len(entities)} Entities")
+    pg.display.set_caption(f"""IRIS - {math.ceil(clock.get_fps())}
+                               FPS - {len(entities)} Entities""")
     screen.fill((255, 255, 255))
     for entity in entities:
 #        if type(entity) is Ant:
