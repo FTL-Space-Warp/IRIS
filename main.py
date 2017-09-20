@@ -9,7 +9,6 @@ from numpy import random
 
 class Entity():
     def __init__(self, pos, size=(1, 1), color=(0, 0, 0), visible=False, solid=False, weight=0):
-        self.size = size
         self.color = color
         self.rect = pg.Rect((0, 0), size)
         self.rect.center = pos
@@ -168,8 +167,12 @@ class Ant(Entity):
         return None
 
     def grab(self, entity):
-        if not self.inventory and self.strength >= entity.weight \
-                and entity.solid:
+        if not self.inventory and entity.solid:
+            if self.strength < entity.weight:
+                try:  # try to tear the entity...
+                    entity = entity.tear(self.strength)
+                except AttributeError:  # ...return if not possible
+                    return
             entity.follow = self
             entity.visible = False
             entity.solid = False
@@ -180,9 +183,9 @@ class Ant(Entity):
         if self.inventory:
             self.inventory.follow = False
             self.inventory.solid = True
-            drop_distance = (math.sqrt(2 * (self.size[0] ** 2)) +
-                             math.sqrt(self.inventory.size[0] ** 2 +
-                                       self.inventory.size[1] ** 2)) / 2
+            drop_distance = (math.sqrt(2 * (self.rect.width ** 2)) +
+                             math.sqrt(self.inventory.rect.width ** 2 +
+                                       self.inventory.rect.height ** 2)) / 2
             # (ant's diagonal + item's diagonal) / 2
             self.inventory.rect.center = (
                 self.inventory.rect.center[0] +
@@ -211,7 +214,8 @@ class Ant(Entity):
             if angle:
                 self.angle = angle
             else:
-                self.angle += random.choice((-10, -5, 0, 5, 10), p=(0.125, 0.25, 0.25, 0.25, 0.125))
+                self.angle += random.choice((-10, -5, 0, 5, 10),
+                                            p=(0.125, 0.25, 0.25, 0.25, 0.125))
 
         if type(self.inventory) is Food and self.job == 'scout':
             self.trail('food')
@@ -220,6 +224,7 @@ class Ant(Entity):
 class Food(Entity):
     def __init__(self, pos, size, weight=1):
         super().__init__(pos, size, (0, 102, 0), True, True, weight)
+        self.density = self.weight / (size[0] * size[1])
 
     def update(self):
         super().update()
@@ -231,6 +236,14 @@ class Food(Entity):
                 if type(e) is Spawn:
                     self.remove()
                     break
+
+    def tear(self, weight):
+        split_area = weight / self.density
+        self.rect.width, self.rect.height = \
+            [math.sqrt((self.rect.w * self.rect.h) - split_area)] * 2
+        split_size = [math.sqrt(split_area)] * 2
+        self.weight -= weight
+        return Food(self.rect.center, split_size, weight)
 
 
 class Pheromones(Entity):
@@ -265,7 +278,7 @@ def event_handle():
             mouse_buttons = pg.mouse.get_pressed()
 
             if mouse_buttons[0]:
-                entities.append(Food(event.pos, (2, 2), 1))
+                entities.append(Food(event.pos, (9, 9), 13))
 #                entities.append(Pheromones(event.pos, 'food', 1))
 
 
