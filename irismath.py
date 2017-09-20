@@ -32,7 +32,6 @@ def direction(pos1, pos2):
     elif cdistance[1] == 0 and cdistance[0] < 0:
         angle = 180
     else:
-        print(cdistance)
         angle = math.degrees(math.acos(cdistance[0]/distance))
         if pos1[1] > pos2[1]:
             if pos1[0] < pos2[0]:
