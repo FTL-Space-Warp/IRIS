@@ -70,6 +70,8 @@ class Ant(Entity):
         self.job = 'scout'
         self.inventory = None
         self.strength = self.weight * 10
+        self.food = self.weight / 3
+        self.dead = False
 
     def touch(self, ecoll):
         for entity in ecoll:
@@ -196,29 +198,46 @@ class Ant(Entity):
             self.inventory = None
             self.color = (0, 0, 0)
 
+    def eat(self):
+        daily_food = self.weight / 3
+        fps = int(clock.get_fps())
+        if fps:  # avoid dividing by 0
+            if not self.time % (60 * fps):  # run every simulation hour
+                self.food -= daily_food / 24
+
+        if type(self.inventory) is Food and self.food < (self.weight / 3):
+            missing_food = daily_food - self.food
+            self.inventory.tear(missing_food)
+            self.food = daily_food
+
+        if self.food <= 0:
+            self.dead = True
+
     def update(self):
         super().update()
-        cspeed = imath.speed_on_coord((self.speed, self.angle))
-        angle = self.move(cspeed)
+        if not self.dead:
+            self.eat()
+            cspeed = imath.speed_on_coord((self.speed, self.angle))
+            angle = self.move(cspeed)
 
-        if angle:  # makes sure move() has priority over smell()
-            self.angle = angle
-        elif type(self.inventory) is Food and self.job == 'scout':
-            self.angle = imath.direction(
-                    self.rect.center,
-                    [e.rect.center
-                        for e in entities if type(e) is Spawn][0])[0]
-        #    self.angle += random.choice((-20, 0, 20), p=(0.3, 0, 0.7))
-        else:
-            angle = self.smell()
-            if angle:
+            if angle:  # makes sure move() has priority over smell()
                 self.angle = angle
+            elif type(self.inventory) is Food and self.job == 'scout':
+                self.angle = imath.direction(
+                        self.rect.center,
+                        [e.rect.center
+                            for e in entities if type(e) is Spawn][0])[0]
+            #    self.angle += random.choice((-20, 0, 20), p=(0.3, 0, 0.7))
             else:
-                self.angle += random.choice((-10, -5, 0, 5, 10),
-                                            p=(0.125, 0.25, 0.25, 0.25, 0.125))
+                angle = self.smell()
+                if angle:
+                    self.angle = angle
+                else:
+                    self.angle += random.choice((-10, -5, 0, 5, 10),
+                                                p=(0.125, 0.25, 0.25, 0.25, 0.125))
 
-        if type(self.inventory) is Food and self.job == 'scout':
-            self.trail('food')
+            if type(self.inventory) is Food and self.job == 'scout':
+                self.trail('food')
 
 
 class Food(Entity):
