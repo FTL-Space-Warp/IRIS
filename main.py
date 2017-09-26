@@ -9,7 +9,6 @@ from numpy import random
 
 class Entity():
     def __init__(self, pos, size=(1, 1), color=(0, 0, 0), visible=False, solid=False, weight=0):
-        self.size = size
         self.color = color
         self.rect = pg.Rect((0, 0), size)
         self.rect.center = pos
@@ -71,6 +70,8 @@ class Ant(Entity):
         self.job = 'scout'
         self.inventory = None
         self.strength = self.weight * 10
+        self.food = self.weight / 3
+        self.dead = False
 
     def touch(self, ecoll):
         for entity in ecoll:
@@ -168,8 +169,12 @@ class Ant(Entity):
         return None
 
     def grab(self, entity):
-        if not self.inventory and self.strength >= entity.weight \
-                and entity.solid:
+        if not self.inventory and entity.solid:
+            if self.strength < entity.weight:
+                try:  # try to tear the entity...
+                    entity = entity.tear(self.strength)
+                except AttributeError:  # ...return if not possible
+                    return
             entity.follow = self
             entity.visible = False
             entity.solid = False
@@ -180,9 +185,9 @@ class Ant(Entity):
         if self.inventory:
             self.inventory.follow = False
             self.inventory.solid = True
-            drop_distance = (math.sqrt(2 * (self.size[0] ** 2)) +
-                             math.sqrt(self.inventory.size[0] ** 2 +
-                                       self.inventory.size[1] ** 2)) / 2
+            drop_distance = (math.sqrt(2 * (self.rect.width ** 2)) +
+                             math.sqrt(self.inventory.rect.width ** 2 +
+                                       self.inventory.rect.height ** 2)) / 2
             # (ant's diagonal + item's diagonal) / 2
             self.inventory.rect.center = (
                 self.inventory.rect.center[0] +
@@ -193,33 +198,52 @@ class Ant(Entity):
             self.inventory = None
             self.color = (0, 0, 0)
 
+    def eat(self):
+        daily_food = self.weight / 3
+        fps = int(clock.get_fps())
+        if fps:  # avoid dividing by 0
+            if not self.time % (60 * fps):  # run every simulation hour
+                self.food -= daily_food / 24
+
+        if type(self.inventory) is Food and self.food < (self.weight / 3):
+            missing_food = daily_food - self.food
+            self.inventory.tear(missing_food)
+            self.food = daily_food
+
+        if self.food <= 0:
+            self.dead = True
+
     def update(self):
         super().update()
-        cspeed = imath.speed_on_coord((self.speed, self.angle))
-        angle = self.move(cspeed)
+        if not self.dead:
+            self.eat()
+            cspeed = imath.speed_on_coord((self.speed, self.angle))
+            angle = self.move(cspeed)
 
-        if angle:  # makes sure move() has priority over smell()
-            self.angle = angle
-        elif type(self.inventory) is Food and self.job == 'scout':
-            self.angle = imath.direction(
-                    self.rect.center,
-                    [e.rect.center
-                        for e in entities if type(e) is Spawn][0])[0]
-        #    self.angle += random.choice((-20, 0, 20), p=(0.3, 0, 0.7))
-        else:
-            angle = self.smell()
-            if angle:
+            if angle:  # makes sure move() has priority over smell()
                 self.angle = angle
+            elif type(self.inventory) is Food and self.job == 'scout':
+                self.angle = imath.direction(
+                        self.rect.center,
+                        [e.rect.center
+                            for e in entities if type(e) is Spawn][0])[0]
+            #    self.angle += random.choice((-20, 0, 20), p=(0.3, 0, 0.7))
             else:
-                self.angle += random.choice((-10, -5, 0, 5, 10), p=(0.125, 0.25, 0.25, 0.25, 0.125))
+                angle = self.smell()
+                if angle:
+                    self.angle = angle
+                else:
+                    self.angle += random.choice((-10, -5, 0, 5, 10),
+                                                p=(0.125, 0.25, 0.25, 0.25, 0.125))
 
-        if type(self.inventory) is Food and self.job == 'scout':
-            self.trail('food')
+            if type(self.inventory) is Food and self.job == 'scout':
+                self.trail('food')
 
 
 class Food(Entity):
     def __init__(self, pos, size, weight=1):
         super().__init__(pos, size, (0, 102, 0), True, True, weight)
+        self.density = self.weight / (size[0] * size[1])
 
     def update(self):
         super().update()
@@ -231,6 +255,14 @@ class Food(Entity):
                 if type(e) is Spawn:
                     self.remove()
                     break
+
+    def tear(self, weight):
+        split_area = weight / self.density
+        self.rect.width, self.rect.height = \
+            [math.sqrt((self.rect.w * self.rect.h) - split_area)] * 2
+        split_size = [math.sqrt(split_area)] * 2
+        self.weight -= weight
+        return Food(self.rect.center, split_size, weight)
 
 
 class Pheromones(Entity):
@@ -265,7 +297,7 @@ def event_handle():
             mouse_buttons = pg.mouse.get_pressed()
 
             if mouse_buttons[0]:
-                entities.append(Food(event.pos, (2, 2), 1))
+                entities.append(Food(event.pos, (9, 9), 13))
 #                entities.append(Pheromones(event.pos, 'food', 1))
 
 
